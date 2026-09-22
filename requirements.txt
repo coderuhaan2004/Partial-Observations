@@ -1,0 +1,4 @@
+pyyaml
+matplotlib
+pyadi-iio
+aiohttp

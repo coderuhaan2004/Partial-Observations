@@ -1,0 +1,11 @@
+## Run Primary and Secondary User
+```bash
+python src/primary-user.py <pluto-uri>
+python src/secondary-user.py <pluto-uri>
+```
+
+## What more ?
+- Need to design how SU gets to know which channel the assigned PU is occupying.
+- Information from all the SUs will be given to the fusion server. So fusion server needs to be implemented.
+- 64 frequency points for each band. (Probably achieved by OFDM signal)
+- Asynchronous file I/O if computation within while loop of SU is taking significant time.
