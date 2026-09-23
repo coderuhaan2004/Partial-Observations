@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from utils import computePowerSpectrum, configureSDR
 from channel_creator import ChannelPlan
 from config import SpectrumConfig
-from fusion_client import FusionClient
+from fusion_client import FusionSUClient
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
 
@@ -124,7 +124,9 @@ def classify_channels(
         )
         if not np.any(channel_mask):
             raise ValueError(f"No FFT bins found for channel {channel.index}")
-        channel_power = float(np.mean(linear_power[channel_mask]))
+        # PU transmissions are narrow tones, so average channel power hides
+        # them across the many FFT bins in a 1 MHz channel.
+        channel_power = float(np.max(linear_power[channel_mask]))
         channel_powers.append((channel.index, channel_power))
 
     channel_power_db = [
@@ -282,7 +284,7 @@ def main():
     )
     print("[LOG] Matplotlib figure created.")
 
-    fusion_client = FusionClient(
+    fusion_client = FusionSUClient(
         fusionConfig["host"],
         fusionConfig["port"],
         suConfig["su_id"],

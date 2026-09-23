@@ -16,7 +16,6 @@ Devices:
       center_frequency_hz: 2593100000
       buffer_size: 65536
       tx_hardwaregain_chan0: -10
-      channel_indices: [4, 5]
     "ip:192.168.4.1":
       pu_id: pu-002
       sample_rate_hz: 2000000
@@ -24,7 +23,6 @@ Devices:
       center_frequency_hz: 2593100000
       buffer_size: 65536
       tx_hardwaregain_chan0: -10
-      channel_indices: [4]
 
 FusionServer:
   host: 172.26.12.170

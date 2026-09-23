@@ -84,6 +84,10 @@ def occupy_channel(
             channel.center_frequency_hz - groupCenterHz
             for channel in channels
         ]
+        txSampleRateHz = max(
+            float(cfg.sample_rate_hz),
+            float(occupiedBandwidthHz),
+        )
 
         configureSDR(
             sdr,
@@ -92,7 +96,7 @@ def occupy_channel(
             ),
 
             sample_rate_hz=(
-                cfg.sample_rate_hz
+                txSampleRateHz
             ),
 
             bandwidth_hz=(
@@ -105,7 +109,7 @@ def occupy_channel(
         samples = (
             generate_channel_signal(
                 sample_rate_hz=(
-                    cfg.sample_rate_hz
+                    txSampleRateHz
                 ),
 
                 frequency_offsets_hz=(
@@ -143,7 +147,6 @@ def parsePUConfig(yamlPath: str | Path, uri: str) -> dict:
         "center_frequency_hz",
         "buffer_size",
         "tx_hardwaregain_chan0",
-        "channel_indices",
     ]
 
     pu_config = config.get("Devices", {}).get("Primary_User", {}).get(uri, {})
@@ -174,13 +177,12 @@ def parseFusionServerConfig(yamlPath: str | Path) -> dict:
     return fusion_config
 
 
-def choose_random_occupation(channel_indices: list[int]) -> tuple[list[int], float]:
-    assigned_indices = sorted(int(channel_index) for channel_index in channel_indices)
-    if not assigned_indices:
-        raise ValueError("At least one channel must be assigned to a PU")
+def choose_random_occupation(channel_count: int) -> tuple[list[int], float]:
+    if channel_count < 1:
+        raise ValueError("At least one channel must be available to a PU")
 
-    selected_count = random.randint(1, len(assigned_indices))
-    selected_indices = sorted(random.sample(assigned_indices, selected_count))
+    selected_count = random.randint(0, min(4, channel_count))
+    selected_indices = sorted(random.sample(range(channel_count), selected_count))
     duration_s = random.uniform(
         MIN_OCCUPATION_DURATION_S,
         MAX_OCCUPATION_DURATION_S,
@@ -318,22 +320,28 @@ def main():
         occupation_events = []
         while True:
             channelIndices, transmissionDurationS = choose_random_occupation(
-                puConfig["channel_indices"]
+                len(channel_plan.channels)
             )
             channels = [
                 channel_plan.get_channel(channelIndex)
                 for channelIndex in channelIndices
             ]
-            print(f"\n[LOG] Occupying channels {channelIndices}...")
+            if channelIndices:
+                print(f"\n[LOG] Occupying channels {channelIndices}...")
+            else:
+                print(
+                    f"\n[LOG] PU idle for {transmissionDurationS:.1f} seconds..."
+                )
             for channel in channels:
                 print(
                     f"[LOG] Channel {channel.index} center: "
                     f"{channel.center_frequency_hz / 1e6:.3f} MHz"
                 )
-            print(
-                f"[LOG] Generating tone for a "
-                f"{transmissionDurationS:.1f} second transmission..."
-            )
+            if channelIndices:
+                print(
+                    f"[LOG] Generating tone for a "
+                    f"{transmissionDurationS:.1f} second transmission..."
+                )
             channel_occupation = [
                 channel.index in channelIndices
                 for channel in channel_plan.channels
@@ -348,13 +356,16 @@ def main():
                     "duration_s": transmissionDurationS,
                 }
             )
-            occupy_channel(
-                sdr,
-                channel_plan,
-                channel_indices=channelIndices,
-                duration_s=transmissionDurationS,
-                tx_hardwaregain_chan0=int(puConfig["tx_hardwaregain_chan0"]),
-            )
+            if channelIndices:
+                occupy_channel(
+                    sdr,
+                    channel_plan,
+                    channel_indices=channelIndices,
+                    duration_s=transmissionDurationS,
+                    tx_hardwaregain_chan0=int(puConfig["tx_hardwaregain_chan0"]),
+                )
+            else:
+                time.sleep(transmissionDurationS)
 
     except Exception as e:
         print(
