@@ -1,5 +1,5 @@
 import math
-from config import SpectrumConfig, Channel
+from experiment.config import SpectrumConfig, Channel
 
 class ChannelPlan:
 

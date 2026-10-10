@@ -6,10 +6,10 @@ import random
 import sys
 import time
 import yaml
-from utils import configureSDR
-from channel_creator import ChannelPlan, get_channel_group
-from config import SpectrumConfig
-from fusion_client import FusionPUClient
+from experiment.utils import configureSDR
+from experiment.channel_creator import ChannelPlan, get_channel_group
+from experiment.config import SpectrumConfig
+from experiment.fusion_client import FusionPUClient
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
 MIN_OCCUPATION_DURATION_S = 10.0

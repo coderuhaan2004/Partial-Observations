@@ -1,18 +1,18 @@
 Devices:
   Secondary_User:
-    "ip:192.168.3.1":
+    "ip:192.168.3.1": # HP Laptop
       sample_rate_hz: 10000000
       bandwidth_hz: 10000000
       center_frequency_hz: 2593100000
       buffer_size: 1024
-      rx_hardwaregain_chan0: 20
-      detection_threshold_db: 105
+      rx_hardwaregain_chan0: 40
+      detection_threshold_db: 70
       su_id: su-001
   Primary_User:
     "ip:192.168.5.1":
       pu_id: pu-001
-      sample_rate_hz: 2000000
-      bandwidth_hz: 2000000
+      sample_rate_hz: 10000000
+      bandwidth_hz: 1000000
       center_frequency_hz: 2593100000
       buffer_size: 65536
       tx_hardwaregain_chan0: -10
@@ -25,7 +25,7 @@ Devices:
       tx_hardwaregain_chan0: -10
 
 FusionServer:
-  host: 172.26.12.170
+  host: 172.26.13.85
   port: 8080
   storage_path: data/fusion
 

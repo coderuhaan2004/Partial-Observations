@@ -12,10 +12,10 @@ matplotlib.use(
     else "Agg"
 )
 import matplotlib.pyplot as plt
-from utils import computePowerSpectrum, configureSDR
-from channel_creator import ChannelPlan
-from config import SpectrumConfig
-from fusion_client import FusionSUClient
+from experiment.utils import computePowerSpectrum, configureSDR
+from experiment.channel_creator import ChannelPlan
+from experiment.config import SpectrumConfig
+from experiment.fusion_client import FusionSUClient
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
 
