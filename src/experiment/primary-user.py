@@ -9,6 +9,7 @@ import yaml
 from experiment.utils import configureSDR
 from experiment.channel_creator import ChannelPlan, get_channel_group
 from experiment.config import SpectrumConfig
+from experiment.dataset_writer import JsonlEventWriter
 from experiment.fusion_client import FusionPUClient
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
@@ -177,6 +178,17 @@ def parseFusionServerConfig(yamlPath: str | Path) -> dict:
     return fusion_config
 
 
+def parsePrimaryDatasetConfig(yamlPath: str | Path) -> dict:
+    with open(yamlPath, "r") as file:
+        config = yaml.safe_load(file) or {}
+    dataset_config = dict(config.get("PrimaryDataset", {}))
+    dataset_config.setdefault("storage_path", "data/primary")
+    storage_path = Path(dataset_config["storage_path"])
+    if not storage_path.is_absolute():
+        dataset_config["storage_path"] = str(Path(yamlPath).resolve().parent / storage_path)
+    return dataset_config
+
+
 def choose_random_occupation(channel_count: int) -> tuple[list[int], float]:
     if channel_count < 1:
         raise ValueError("At least one channel must be available to a PU")
@@ -251,6 +263,7 @@ def main():
     )
     print("[LOG] Configuration parsed successfully.")
     fusionConfig = parseFusionServerConfig(YAML_PATH)
+    primaryDatasetConfig = parsePrimaryDatasetConfig(YAML_PATH)
 
     print(f"[LOG] Device URI retrieved: {uri}")
     puConfig["uri"] = uri
@@ -316,56 +329,58 @@ def main():
             f"[LOG] Total spectrum bandwidth: {channel_plan.config.total_bandwidth_hz/1e6:.1f} MHz"
         )
 
-        print("[LOG] Starting randomized channel occupation loop...")
-        occupation_events = []
-        while True:
-            channelIndices, transmissionDurationS = choose_random_occupation(
-                len(channel_plan.channels)
-            )
-            channels = [
-                channel_plan.get_channel(channelIndex)
-                for channelIndex in channelIndices
-            ]
-            if channelIndices:
-                print(f"\n[LOG] Occupying channels {channelIndices}...")
-            else:
-                print(
-                    f"\n[LOG] PU idle for {transmissionDurationS:.1f} seconds..."
+        local_dataset_path = (
+            Path(primaryDatasetConfig["storage_path"]) / f"{puConfig['pu_id']}.jsonl"
+        )
+        print(f"[LOG] Streaming primary-user dataset to {local_dataset_path}")
+        with JsonlEventWriter(local_dataset_path) as local_writer:
+            print("[LOG] Starting randomized channel occupation loop...")
+            while True:
+                channelIndices, transmissionDurationS = choose_random_occupation(
+                    len(channel_plan.channels)
                 )
-            for channel in channels:
-                print(
-                    f"[LOG] Channel {channel.index} center: "
-                    f"{channel.center_frequency_hz / 1e6:.3f} MHz"
-                )
-            if channelIndices:
-                print(
-                    f"[LOG] Generating tone for a "
-                    f"{transmissionDurationS:.1f} second transmission..."
-                )
-            channel_occupation = [
-                channel.index in channelIndices
-                for channel in channel_plan.channels
-            ]
-            occupation_events.append(
-                {
+                channels = [
+                    channel_plan.get_channel(channelIndex)
+                    for channelIndex in channelIndices
+                ]
+                if channelIndices:
+                    print(f"\n[LOG] Occupying channels {channelIndices}...")
+                else:
+                    print(
+                        f"\n[LOG] PU idle for {transmissionDurationS:.1f} seconds..."
+                    )
+                for channel in channels:
+                    print(
+                        f"[LOG] Channel {channel.index} center: "
+                        f"{channel.center_frequency_hz / 1e6:.3f} MHz"
+                    )
+                if channelIndices:
+                    print(
+                        f"[LOG] Generating tone for a "
+                        f"{transmissionDurationS:.1f} second transmission..."
+                    )
+                event = {
                     "timestamp": time.strftime(
                         "%Y-%m-%dT%H:%M:%S%z", time.gmtime()
                     ),
-                    "channel_occupation": channel_occupation,
+                    "channel_occupation": [
+                        channel.index in channelIndices
+                        for channel in channel_plan.channels
+                    ],
                     "channel_indices": channelIndices,
                     "duration_s": transmissionDurationS,
                 }
-            )
-            if channelIndices:
-                occupy_channel(
-                    sdr,
-                    channel_plan,
-                    channel_indices=channelIndices,
-                    duration_s=transmissionDurationS,
-                    tx_hardwaregain_chan0=int(puConfig["tx_hardwaregain_chan0"]),
-                )
-            else:
-                time.sleep(transmissionDurationS)
+                local_writer.write(event)
+                if channelIndices:
+                    occupy_channel(
+                        sdr,
+                        channel_plan,
+                        channel_indices=channelIndices,
+                        duration_s=transmissionDurationS,
+                        tx_hardwaregain_chan0=int(puConfig["tx_hardwaregain_chan0"]),
+                    )
+                else:
+                    time.sleep(transmissionDurationS)
 
     except Exception as e:
         print(
@@ -375,13 +390,18 @@ def main():
         traceback.print_exc()
 
     finally:
-        if "occupation_events" in locals():
+        if "local_dataset_path" in locals():
             try:
+                local_dataset_reader = JsonlEventWriter(local_dataset_path)
+                try:
+                    local_events = local_dataset_reader.read_events()
+                finally:
+                    local_dataset_reader.close()
                 FusionPUClient(
                     fusionConfig["host"],
                     fusionConfig["port"],
                     puConfig["pu_id"],
-                ).send_events(occupation_events)
+                ).send_events(local_events)
             except Exception as upload_error:
                 print(f"[ERROR] Failed to send PU data: {upload_error}")
         print(

@@ -1,0 +1,38 @@
+Total samples: 1102
+Model parameters: 98,124
+Dataset split — train: 772, val: 165, test: 165
+Per-channel pos_weight: [1.56 1.19 1.51 2.37 4.98 2.82 1.82 4.55 3.95 2.  ]
+Epoch   1/100 | train_loss: 0.8698 | val_loss: 0.8465 | val_F1: 0.5876 | val_PD: 0.6351 | val_PFA: 0.2395
+Epoch   5/100 | train_loss: 0.4171 | val_loss: 0.4918 | val_F1: 0.7989 | val_PD: 0.8259 | val_PFA: 0.1084
+Epoch  10/100 | train_loss: 0.2393 | val_loss: 0.4174 | val_F1: 0.8759 | val_PD: 0.9032 | val_PFA: 0.0735
+Epoch  15/100 | train_loss: 0.1699 | val_loss: 0.4413 | val_F1: 0.8891 | val_PD: 0.9225 | val_PFA: 0.0766
+Epoch  20/100 | train_loss: 0.1136 | val_loss: 0.4338 | val_F1: 0.9264 | val_PD: 0.9491 | val_PFA: 0.0479
+Epoch  25/100 | train_loss: 0.0958 | val_loss: 0.4708 | val_F1: 0.9263 | val_PD: 0.9327 | val_PFA: 0.0413
+Epoch  30/100 | train_loss: 0.0402 | val_loss: 0.5505 | val_F1: 0.9332 | val_PD: 0.9447 | val_PFA: 0.0403
+Epoch  35/100 | train_loss: 0.0253 | val_loss: 0.5651 | val_F1: 0.9349 | val_PD: 0.9420 | val_PFA: 0.0372
+Epoch  40/100 | train_loss: 0.0198 | val_loss: 0.6053 | val_F1: 0.9337 | val_PD: 0.9371 | val_PFA: 0.0364
+Epoch  45/100 | train_loss: 0.0160 | val_loss: 0.6318 | val_F1: 0.9402 | val_PD: 0.9384 | val_PFA: 0.0310
+Epoch  50/100 | train_loss: 0.0126 | val_loss: 0.6408 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0333
+Epoch  55/100 | train_loss: 0.0135 | val_loss: 0.6321 | val_F1: 0.9385 | val_PD: 0.9420 | val_PFA: 0.0342
+Epoch  60/100 | train_loss: 0.0156 | val_loss: 0.6396 | val_F1: 0.9392 | val_PD: 0.9384 | val_PFA: 0.0322
+Epoch  65/100 | train_loss: 0.0134 | val_loss: 0.6409 | val_F1: 0.9392 | val_PD: 0.9384 | val_PFA: 0.0322
+Epoch  70/100 | train_loss: 0.0118 | val_loss: 0.6407 | val_F1: 0.9385 | val_PD: 0.9420 | val_PFA: 0.0343
+Epoch  75/100 | train_loss: 0.0111 | val_loss: 0.6426 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+Epoch  80/100 | train_loss: 0.0139 | val_loss: 0.6432 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+Epoch  85/100 | train_loss: 0.0110 | val_loss: 0.6439 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+Epoch  90/100 | train_loss: 0.0130 | val_loss: 0.6442 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+Epoch  95/100 | train_loss: 0.0138 | val_loss: 0.6443 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+Epoch 100/100 | train_loss: 0.0118 | val_loss: 0.6444 | val_F1: 0.9383 | val_PD: 0.9384 | val_PFA: 0.0332
+
+Best val F1: 0.9403 at epoch 42
+
+── Test Set Evaluation (best checkpoint) ──
+  Precision:   0.9585
+  Recall:      0.9642
+  F1:          0.9613
+  Accuracy:    0.9764
+  Mean PD:     0.9620
+  Mean PFA:    0.0214
+
+  Per-channel PD:  [0.968, 0.968, 0.957, 0.947, 0.917, 0.913, 0.981, 1.0, 0.969, 1.0]
+  Per-channel PFA: [0.029, 0.069, 0.032, 0.0, 0.007, 0.042, 0.009, 0.008, 0.0, 0.018]

@@ -1,5 +1,6 @@
 import csv
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -189,6 +190,111 @@ class JsonDatasetWriter:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
+
+
+class JsonlEventWriter:
+    """Append event records as durable JSON Lines without rewriting the dataset."""
+
+    def __init__(self, output_path: str | Path):
+        self.output_path = Path(output_path)
+        self.output_path.parent.mkdir(parents=True, exist_ok=True)
+        self.file = self.output_path.open("a+", encoding="utf-8")
+        self._discard_incomplete_last_line()
+        self.file.seek(0, 2)
+
+    def write(self, event: dict) -> None:
+        self.file.write(json.dumps(event, separators=(",", ":")) + "\n")
+        self.file.flush()
+        os.fsync(self.file.fileno())
+
+    def read_events(self) -> list[dict]:
+        self.file.flush()
+        self.file.seek(0)
+        events = [json.loads(line) for line in self.file if line.strip()]
+        self.file.seek(0, 2)
+        return events
+
+    def _discard_incomplete_last_line(self) -> None:
+        self.file.seek(0)
+        data = self.file.read()
+        if not data or data.endswith("\n"):
+            return
+        last_newline = data.rfind("\n")
+        self.file.seek(last_newline + 1)
+        self.file.truncate()
+        self.file.flush()
+        os.fsync(self.file.fileno())
+
+    def close(self):
+        self.file.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+
+class JsonlFrameWriter(JsonlEventWriter):
+    """Append complete IQ frames as durable JSON Lines."""
+
+    def __init__(
+        self,
+        output_path: str | Path,
+        channel_count: int,
+        frame_size: int = JsonDatasetWriter.FRAME_SIZE,
+    ):
+        super().__init__(output_path)
+        self.channel_count = channel_count
+        self.frame_size = frame_size
+        self.frame_id = self._next_frame_id()
+
+    def write_iq_frames(
+        self,
+        samples,
+        occupied_channels: dict[int, bool],
+        snr_db: dict[int, float] | None = None,
+    ) -> int:
+        frame_count = len(samples) // self.frame_size
+        if frame_count == 0:
+            return 0
+        occupancy = [
+            bool(occupied_channels.get(channel_index, False))
+            for channel_index in range(self.channel_count)
+        ]
+        snr_values = [
+            _json_number_or_null(
+                (snr_db or {}).get(channel_index, float("-inf"))
+            )
+            for channel_index in range(self.channel_count)
+        ]
+        for frame_index in range(frame_count):
+            frame = samples[
+                frame_index * self.frame_size : (frame_index + 1) * self.frame_size
+            ]
+            self.write(
+                {
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "frame_id": self.frame_id,
+                    "iq": [
+                        [float(sample.real), float(sample.imag)]
+                        for sample in frame
+                    ],
+                    "channels": occupancy,
+                    "snr_db": snr_values,
+                }
+            )
+            self.frame_id += 1
+        return frame_count
+
+    def _next_frame_id(self) -> int:
+        self.file.seek(0)
+        frame_id = 0
+        for line in self.file:
+            if line.strip():
+                frame_id = int(json.loads(line)["frame_id"]) + 1
+        self.file.seek(0, 2)
+        return frame_id
 
 
 def create_dataset_writer(

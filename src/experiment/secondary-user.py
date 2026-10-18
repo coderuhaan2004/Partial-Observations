@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 from experiment.utils import computePowerSpectrum, configureSDR
 from experiment.channel_creator import ChannelPlan
 from experiment.config import SpectrumConfig
+from experiment.dataset_writer import JsonlFrameWriter
 from experiment.fusion_client import FusionSUClient
 
 YAML_PATH = Path(__file__).resolve().parent.parent / "config.yaml"
@@ -71,6 +72,17 @@ def parseFusionServerConfig(yamlPath: str | Path) -> dict:
         if field not in fusion_config:
             raise ValueError(f"Missing required FusionServer field: {field}")
     return fusion_config
+
+
+def parseSecondaryDatasetConfig(yamlPath: str | Path) -> dict:
+    with open(yamlPath, "r") as file:
+        config = yaml.safe_load(file) or {}
+    dataset_config = dict(config.get("SecondaryDataset", {}))
+    dataset_config.setdefault("storage_path", "data/secondary")
+    storage_path = Path(dataset_config["storage_path"])
+    if not storage_path.is_absolute():
+        dataset_config["storage_path"] = str(Path(yamlPath).resolve().parent / storage_path)
+    return dataset_config
 
 
 def get_device_uri() -> str:
@@ -189,6 +201,7 @@ def main():
         YAML_PATH, uri
     )
     fusionConfig = parseFusionServerConfig(YAML_PATH)
+    secondaryDatasetConfig = parseSecondaryDatasetConfig(YAML_PATH)
     print("[LOG] Configuration parsed successfully.")
 
     channel_plan = parseChannelPlan(YAML_PATH)
@@ -290,6 +303,14 @@ def main():
         suConfig["su_id"],
     )
     fusion_client.start()
+    local_dataset_path = (
+        Path(secondaryDatasetConfig["storage_path"]) / f"{suConfig['su_id']}.jsonl"
+    )
+    local_writer = JsonlFrameWriter(
+        local_dataset_path,
+        len(channel_plan.channels),
+    )
+    print(f"[LOG] Streaming secondary-user dataset to {local_dataset_path}")
 
     # Receive the first buffer.
     print("[LOG] Receiving first sample buffer...")
@@ -336,6 +357,17 @@ def main():
             for channel_index, _, _, snr_db in channelDetections
         },
         len(channel_plan.channels),
+    )
+    local_writer.write_iq_frames(
+        samples,
+        {
+            channel_index: occupied
+            for channel_index, _, occupied, _ in channelDetections
+        },
+        {
+            channel_index: snr_db
+            for channel_index, _, _, snr_db in channelDetections
+        },
     )
 
     # Configure plot axes once.
@@ -414,6 +446,17 @@ def main():
             )
 
             print("========== Sending IQ frames to Fusion Server =====================")
+            local_writer.write_iq_frames(
+                samples,
+                {
+                    channel_index: occupied
+                    for channel_index, _, occupied, _ in channelDetections
+                },
+                {
+                    channel_index: snr_db
+                    for channel_index, _, _, snr_db in channelDetections
+                },
+            )
             fusion_client.send_iq_frames(
                 samples,
                 {
@@ -457,6 +500,7 @@ def main():
         print("[LOG] Cleaning up resources...")
         plt.ioff()
         plt.close(fig)
+        local_writer.close()
         fusion_client.close()
         print("[LOG] Matplotlib resources released.")
 
