@@ -71,16 +71,21 @@ build_libiio() {
 }
 
 build_libad9361() {
-    local build_dir
+    local build_dir libiio_include_dir
     build_dir="$(mktemp -d)"
+    libiio_include_dir="${build_dir}/libiio-include/iio"
+    mkdir -p "${libiio_include_dir}"
+    ln -s /usr/local/include/iio.h "${libiio_include_dir}/iio.h"
 
     step "Building libad9361-iio from source..."
-    git clone --depth 1 \
+    git clone --depth 1 --branch libad9361-iio-v0 \
         https://github.com/analogdevicesinc/libad9361-iio.git \
         "${build_dir}/libad9361-iio"
     cmake -S "${build_dir}/libad9361-iio" -B "${build_dir}/libad9361-iio/build" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr/local
+        -DCMAKE_INSTALL_PREFIX=/usr/local \
+        -DLIBIIO_INCLUDEDIR="${build_dir}/libiio-include" \
+        -DLIBIIO_LIBRARIES=/usr/local/lib/libiio.so
     cmake --build "${build_dir}/libad9361-iio/build" -j"${MAKE_JOBS}"
     sudo cmake --install "${build_dir}/libad9361-iio/build"
     rm -rf "${build_dir}"

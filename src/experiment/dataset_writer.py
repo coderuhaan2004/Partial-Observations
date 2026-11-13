@@ -159,6 +159,7 @@ class JsonDatasetWriter:
                         for sample in frame
                     ],
                     "channels": occupancy,
+                    "local_channels": occupancy,
                     "snr_db": [
                         _json_number_or_null(
                             (snr_db or {}).get(channel_index, float("-inf"))
@@ -281,6 +282,7 @@ class JsonlFrameWriter(JsonlEventWriter):
                         for sample in frame
                     ],
                     "channels": occupancy,
+                    "local_channels": occupancy,
                     "snr_db": snr_values,
                 }
             )

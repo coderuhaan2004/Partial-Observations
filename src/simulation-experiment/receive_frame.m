@@ -1,4 +1,4 @@
-function [samples, occupied, snrDb] = receive_frame( ...
+function [samples, occupied, localChannels, snrDb] = receive_frame( ...
     plan, pu, states, links, su, frameSize, sampleRate)
 %RECEIVE_FRAME Sum PU waveforms through fixed PU-SU links and add AWGN.
 
@@ -8,7 +8,6 @@ noisePower = 10^((-90 + 10 * log10(max(su.rx_hardwaregain_chan0 + 1, 1))) / 10);
 samples = sqrt(noisePower / 2) * ...
     (randn(frameSize, 1) + 1i * randn(frameSize, 1));
 occupied = false(1, plan.channel_count);
-snrDb = nan(1, plan.channel_count);
 
 for puIndex = 1:numel(pu)
     activeChannels = find(states(puIndex, :));
@@ -22,11 +21,6 @@ for puIndex = 1:numel(pu)
     samples = samples + links(puIndex).complex_gain * txGain * tx;
 end
 
-noiseFloor = max(noisePower, realmin);
-for channelIndex = find(occupied)
-    channelSamples = samples .* exp(-1i * 2 * pi * ...
-        plan.offset_hz(channelIndex) * (0:frameSize - 1).' / sampleRate);
-    signalPower = max(mean(abs(channelSamples).^2) - noiseFloor, realmin);
-    snrDb(channelIndex) = 10 * log10(signalPower / noiseFloor);
-end
+[localChannels, snrDb] = detect_local_channels( ...
+    samples, plan, su.detection_threshold_db);
 end

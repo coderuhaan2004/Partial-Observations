@@ -1,11 +1,12 @@
 # MATLAB hardware-equivalent experiment
 
-[`main.m`](main.m) reads the repository-level [`experiment-config.yaml`](../../experiment-config.yaml)
+[`main.m`](main.m) reads the simulation-local [`experiment-config.yaml`](experiment-config.yaml)
 and writes the same JSON dataset shape as the hardware fusion pipeline:
 
-- `su-001.json` through `su-003.json` contain frame objects with `timestamp`,
-  `frame_id`, 1024 `[I,Q]` samples, `channels`, and `snr_db`.
-- `pu-001.json` through `pu-003.json` contain occupation events with
+- `su-001.jsonl` through `su-003.jsonl` contain one frame object per line with `timestamp`,
+  `frame_id`, 1024 `[I,Q]` samples, global-truth `channels`, local-detector
+  `local_channels`, and detector `snr_db`.
+- `pu-001.jsonl` through `pu-003.jsonl` contain one occupation event per line with
   `timestamp`, `channel_occupation`, `channel_indices`, and `duration_s`.
 
 Run from MATLAB with:
@@ -14,11 +15,24 @@ Run from MATLAB with:
 main()
 ```
 
-Optional arguments are `configPath`, `outputPath`, `durationSeconds`, and
-`randomSeed`. The current YAML contains one SU and two PU entries; the runner
-keeps those settings and deterministically expands missing logical radios to
-three SUs and three PUs. Add real device entries to the YAML when the hardware
-experiment has distinct settings for all six radios.
+Optional arguments are `configPath`, `outputPath`, `durationSeconds`,
+`randomSeed`, and `frameRateHz`. The simulation YAML defines three SUs and
+three PUs explicitly.
+The SU receiver gains and PU transmitter gains are staggered so different SUs
+observe the same PU activity at different strengths, producing partial
+observation rather than identical local views.
+The `channels` field is retained only as global ground truth. Local SU
+observations are represented by `local_channels`, which uses the same
+maximum-FFT-bin energy thresholding rule as the hardware receiver.
+
+The default duration is 12 hours (`43200` seconds), and the default persistence
+rate is 9.18 frames per second, measured from the collected SU dataset. Each
+frame contains exactly 1024 samples, matching the hardware receiver buffer.
+Override the duration or persistence rate when needed, for example
+`main("", "", 60, 7, 9.18)` for a one-minute run. Frames are streamed directly
+to JSONL files instead of accumulating the entire experiment in memory. IQ
+values are quantized to signed 16-bit integers, matching the compact numeric
+shape of the recorded SDR data.
 
 The fixed positions in `create_layout.m` are in metres and are intentionally
 separate from the paper's 10-node illustration. Propagation uses only the

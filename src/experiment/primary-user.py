@@ -193,7 +193,7 @@ def choose_random_occupation(channel_count: int) -> tuple[list[int], float]:
     if channel_count < 1:
         raise ValueError("At least one channel must be available to a PU")
 
-    selected_count = random.randint(0, min(4, channel_count))
+    selected_count = random.randint(0, min(2, channel_count))
     selected_indices = sorted(random.sample(range(channel_count), selected_count))
     duration_s = random.uniform(
         MIN_OCCUPATION_DURATION_S,

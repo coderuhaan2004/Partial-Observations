@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
 from sklearn.metrics import precision_score, recall_score, f1_score
 from training.GNN.graph import STGNN
-from training.GNN.dataloader import SpectrumDataset
+from training.GNN.dataloader import SpectrumDataset, label_shift_sweep
 import json
 import os
+import time
 from datetime import datetime
 
 # CONFIGURATIONS
@@ -23,7 +24,7 @@ CFG = {
     'n_su':        3,
     'n_ch':        10,
     'n_rounds':    2,       # GNN message passing rounds
-    'batch_size':  64,
+    'batch_size':  128,
     'lr':          1e-3,
     'weight_decay':1e-4,
     'n_epochs':    50,
@@ -32,6 +33,8 @@ CFG = {
     'device':      'cuda' if torch.cuda.is_available() else 'cpu',
     'save_dir':    './checkpoints',
     'log_every':   5,       # print metrics every N epochs
+    'num_workers': 2,
+    'progress_every_batches': 100,
 }
 
 class WeightedChannelBCE(nn.Module):
@@ -62,7 +65,16 @@ def compute_pos_weight(dataset, n_ch=10, device='cpu'):
     """
     Compute per-channel positive class weight from the full dataset.
     """
-    all_labels = torch.stack([dataset[i][1] for i in range(len(dataset))])
+    if isinstance(dataset, Subset) and hasattr(dataset.dataset, 'labels'):
+        indices = torch.as_tensor(dataset.indices, dtype=torch.long)
+        all_labels = dataset.dataset.labels[indices]
+    elif hasattr(dataset, 'labels'):
+        all_labels = dataset.labels
+    else:
+        raise TypeError(
+            "Dataset must expose a labels tensor to compute class weights "
+            "without decoding every IQ frame"
+        )
     # all_labels: (N, n_ch)
     n_pos = all_labels.sum(dim=0).clamp(min=1)        # (n_ch,)
     n_neg = (1 - all_labels).sum(dim=0).clamp(min=1)  # (n_ch,)
@@ -120,10 +132,27 @@ def compute_metrics(all_logits, all_labels, threshold=0.5):
 
     return metrics
 
+
+def compute_label_shift_sweep_metrics(
+    all_logits,
+    dataset,
+    sample_indices,
+    offsets_s,
+):
+    """Evaluate fixed predictions against labels at candidate time offsets."""
+    shifted_labels = label_shift_sweep(dataset, offsets_s)
+    indices = torch.as_tensor(sample_indices, dtype=torch.long)
+    return {
+        offset: compute_metrics(all_logits, labels[indices].numpy())
+        for offset, labels in shifted_labels.items()
+    }
+
 def train_epoch(model, loader, optimizer, criterion, device):
     model.train()
     total_loss = 0.0
     n_batches  = 0
+    started = time.monotonic()
+    total_batches = len(loader)
 
     for node_feats, labels, edge_weights in loader:
         node_feats   = node_feats.to(device)    # (batch, n_su, input_dim)
@@ -140,6 +169,14 @@ def train_epoch(model, loader, optimizer, criterion, device):
         optimizer.step()
         total_loss += loss.item()
         n_batches  += 1
+        if n_batches % CFG['progress_every_batches'] == 0:
+            elapsed = time.monotonic() - started
+            print(
+                f"[train] batch {n_batches:,}/{total_batches:,} "
+                f"({n_batches / total_batches:.1%}), "
+                f"loss={loss.item():.4f}, {elapsed:.1f}s elapsed",
+                flush=True,
+            )
 
     return total_loss / n_batches
 
@@ -183,33 +220,36 @@ def train(model, dataset, cfg):
     n_val   = int(n_total * cfg['val_split'])
     n_train = n_total - n_val - n_test
 
-    train_ds, val_ds, test_ds = random_split(
-        dataset,
-        [n_train, n_val, n_test],
-        generator=torch.Generator().manual_seed(42)
-    )
+    # Keep time-ordered blocks separate. Randomly mixing adjacent frames
+    # leaks highly correlated observations into validation and test.
+    train_ds = Subset(dataset, range(0, n_train))
+    val_ds = Subset(dataset, range(n_train, n_train + n_val))
+    test_ds = Subset(dataset, range(n_train + n_val, n_total))
     print(f"Dataset split — train: {n_train}, val: {n_val}, test: {n_test}")
+
+    loader_kwargs = {
+        'batch_size': cfg['batch_size'],
+        'num_workers': cfg['num_workers'],
+        'pin_memory': (device == 'cuda'),
+        'persistent_workers': cfg['num_workers'] > 0,
+    }
+    if cfg['num_workers'] > 0:
+        loader_kwargs['prefetch_factor'] = 2
 
     train_loader = DataLoader(
         train_ds,
-        batch_size=cfg['batch_size'],
         shuffle=True,
-        num_workers=2,
-        pin_memory=(device == 'cuda')
+        **loader_kwargs,
     )
     val_loader = DataLoader(
         val_ds,
-        batch_size=cfg['batch_size'],
         shuffle=False,
-        num_workers=2,
-        pin_memory=(device == 'cuda')
+        **loader_kwargs,
     )
     test_loader = DataLoader(
         test_ds,
-        batch_size=cfg['batch_size'],
         shuffle=False,
-        num_workers=2,
-        pin_memory=(device == 'cuda')
+        **loader_kwargs,
     )
 
     # ── Loss with class-imbalance correction ───────────────────────
@@ -293,6 +333,17 @@ def train(model, dataset, cfg):
     print(f"\n  Per-channel PD:  {test_metrics['per_channel_pd']}")
     print(f"  Per-channel PFA: {test_metrics['per_channel_pfa']}")
 
+    sweep_offsets = [-2.0, -1.0, -0.5, -0.25, 0.0, 0.25, 0.5, 1.0, 2.0]
+    shift_metrics = compute_label_shift_sweep_metrics(
+        test_logits,
+        dataset,
+        range(n_train + n_val, n_total),
+        sweep_offsets,
+    )
+    print("\nLabel timestamp-offset sweep (diagnostic; not used for selection):")
+    for offset, metrics in shift_metrics.items():
+        print(f"  offset {offset:+.2f}s: F1={metrics['f1']:.4f}")
+
     # ── Save training history ──────────────────────────────────────
     history_path = os.path.join(cfg['save_dir'], 'training_history.json')
     with open(history_path, 'w') as f:
@@ -302,25 +353,47 @@ def train(model, dataset, cfg):
     return model, history, test_metrics
 
 if __name__ == '__main__':
+    import argparse
+    from pathlib import Path
+    from training.GNN.dataloader import JsonlFrameIndex
 
-    def load_json(path):
-        with open(path) as f:
-            return json.load(f)
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--data-dir",
+        default="src/data/secondary/Experiment_1",
+        help="Experiment directory containing su-001..003.jsonl and pu-001..003.jsonl",
+    )
+    args = parser.parse_args()
+    data_dir = Path(args.data_dir)
 
     su_frames_list = [
-        load_json('./dataset/fusion/JSON/su-001.json'),
-        load_json('./dataset/fusion/JSON/su-002.json'),
-        load_json('./dataset/fusion/JSON/su-003.json'),
+        JsonlFrameIndex(data_dir / f"su-{index:03d}.jsonl")
+        for index in range(1, 4)
     ]
-    pu_logs_list = [
-        load_json('./dataset/fusion/JSON/pu-001.json'),
-        load_json('./dataset/fusion/JSON/pu-002.json'),
-        load_json('./dataset/fusion/JSON/pu-003.json'),
-    ]
+    pu_logs_list = []
+    for index in range(1, 4):
+        with (data_dir / f"pu-{index:03d}.jsonl").open() as file:
+            pu_logs_list.append([json.loads(line) for line in file if line.strip()])
 
     # ── Build dataset ──────────────────────────────────────────────
     dataset = SpectrumDataset(su_frames_list, pu_logs_list, SU_LOCATIONS)
     print(f"Total samples: {len(dataset)}")
+    print("Local-detector audit:")
+    for report in dataset.audit_local_detection_agreement():
+        print(
+            f"  SU {report['su_index'] + 1}: "
+            f"available={report['available_frames']:,}, "
+            f"missing={report['missing_frames']:,}, "
+            f"agreement={report['channel_agreement']}"
+        )
+    print("Local-detector audit:")
+    for report in dataset.audit_local_detection_agreement():
+        print(
+            f"  SU {report['su_index'] + 1}: "
+            f"available={report['available_frames']:,}, "
+            f"missing={report['missing_frames']:,}, "
+            f"agreement={report['channel_agreement']}"
+        )
 
     # ── Build model ────────────────────────────────────────────────
     model = STGNN(

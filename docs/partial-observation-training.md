@@ -50,6 +50,24 @@ also supported by pointing the command at `dataset/fusion/CSV`.
 
 ## Our training design
 
+### Experiment 1 GNN input
+
+The three stationary streams in `src/data/secondary/Experiment_1` are JSONL
+files with asynchronous timestamps. The GNN loader indexes byte offsets and
+reads IQ frames lazily, aligns SU frames to the nearest timestamp within
+0.25 seconds, and ORs the three PU state timelines into the ten-channel
+target. Samples before the first or after the last common PU-covered interval
+are excluded.
+
+The training split is chronological: 70% train, then 15% validation, then 15%
+test. This avoids putting adjacent, highly correlated IQ frames in different
+partitions. To train on Experiment 1 from the repository root:
+
+```bash
+PYTHONPATH=src python3 -m training.GNN.train \
+  --data-dir src/data/secondary/Experiment_1
+```
+
 Our partial observation is dynamic and sample-dependent. A PU can use any
 channel, and an SU can miss a nearby transmission because of distance and
 received SNR. Therefore, a fixed `class_dir` is the wrong abstraction. The

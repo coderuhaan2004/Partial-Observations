@@ -1,0 +1,123 @@
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 50,000 frames (1.9s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 100,000 frames (3.2s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 150,000 frames (5.2s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 200,000 frames (8.5s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 250,000 frames (10.7s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 300,000 frames (12.6s)
+[data] indexed /content/Experiment_1_real/su-001.jsonl: 335,941 frames
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 50,000 frames (2.7s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 100,000 frames (5.7s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 150,000 frames (8.8s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 200,000 frames (11.9s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 250,000 frames (15.0s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 300,000 frames (18.1s)
+[data] indexed /content/Experiment_1_real/su-002.jsonl: 300,977 frames
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 50,000 frames (3.2s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 100,000 frames (6.3s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 150,000 frames (9.5s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 200,000 frames (12.7s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 250,000 frames (15.9s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 300,000 frames (19.1s)
+[data] indexed /content/Experiment_1_real/su-003.jsonl: 302,308 frames
+[data] cached features: 50,000/334,646 (305.1s)
+[data] cached features: 100,000/334,646 (610.8s)
+[data] cached features: 150,000/334,646 (916.0s)
+[data] cached features: 200,000/334,646 (1213.6s)
+[data] cached features: 250,000/334,646 (1517.6s)
+[data] cached features: 300,000/334,646 (1825.5s)
+[data] aligned 334,646 samples (max SU gap 0.25s)
+Total samples: 334646
+Local-detector audit:
+  SU 1: available=334,646, missing=0, agreement=0.9303000782916874
+  SU 2: available=334,646, missing=0, agreement=0.8365538509350179
+  SU 3: available=334,646, missing=0, agreement=0.9068666590964781
+Local-detector audit:
+  SU 1: available=334,646, missing=0, agreement=0.9303000782916874
+  SU 2: available=334,646, missing=0, agreement=0.8365538509350179
+  SU 3: available=334,646, missing=0, agreement=0.9068666590964781
+Model parameters: 98,124
+Dataset split — train: 234254, val: 50196, test: 50196
+Per-channel pos_weight: [2.47 2.74 2.87 2.48 2.76 2.59 2.83 2.56 2.64 2.59]
+[train] batch 100/1,831 (5.5%), loss=0.5581, 4.0s elapsed
+[train] batch 200/1,831 (10.9%), loss=0.3061, 6.9s elapsed
+[train] batch 300/1,831 (16.4%), loss=0.2886, 9.6s elapsed
+[train] batch 400/1,831 (21.8%), loss=0.3150, 12.2s elapsed
+[train] batch 500/1,831 (27.3%), loss=0.1730, 14.9s elapsed
+[train] batch 600/1,831 (32.8%), loss=0.1959, 17.6s elapsed
+[train] batch 700/1,831 (38.2%), loss=0.2786, 20.3s elapsed
+[train] batch 800/1,831 (43.7%), loss=0.2462, 23.0s elapsed
+[train] batch 900/1,831 (49.2%), loss=0.1762, 25.6s elapsed
+[train] batch 1,000/1,831 (54.6%), loss=0.2734, 28.3s elapsed
+[train] batch 1,100/1,831 (60.1%), loss=0.1710, 30.9s elapsed
+[train] batch 1,200/1,831 (65.5%), loss=0.2019, 33.5s elapsed
+[train] batch 1,300/1,831 (71.0%), loss=0.2177, 36.3s elapsed
+[train] batch 1,400/1,831 (76.5%), loss=0.2375, 39.0s elapsed
+[train] batch 1,500/1,831 (81.9%), loss=0.2689, 41.6s elapsed
+[train] batch 1,600/1,831 (87.4%), loss=0.1875, 44.3s elapsed
+[train] batch 1,700/1,831 (92.8%), loss=0.1909, 46.5s elapsed
+[train] batch 1,800/1,831 (98.3%), loss=0.1437, 48.4s elapsed
+Epoch   1/3 | train_loss: 0.2818 | val_loss: 0.2624 | val_F1: 0.9382 | val_PD: 0.9268 | val_PFA: 0.0195
+[train] batch 100/1,831 (5.5%), loss=0.2274, 2.1s elapsed
+[train] batch 200/1,831 (10.9%), loss=0.2503, 4.6s elapsed
+[train] batch 300/1,831 (16.4%), loss=0.2286, 7.4s elapsed
+[train] batch 400/1,831 (21.8%), loss=0.2040, 10.1s elapsed
+[train] batch 500/1,831 (27.3%), loss=0.1773, 12.8s elapsed
+[train] batch 600/1,831 (32.8%), loss=0.2467, 15.7s elapsed
+[train] batch 700/1,831 (38.2%), loss=0.1864, 18.3s elapsed
+[train] batch 800/1,831 (43.7%), loss=0.2307, 21.0s elapsed
+[train] batch 900/1,831 (49.2%), loss=0.1385, 23.8s elapsed
+[train] batch 1,000/1,831 (54.6%), loss=0.1951, 26.6s elapsed
+[train] batch 1,100/1,831 (60.1%), loss=0.1563, 29.4s elapsed
+[train] batch 1,200/1,831 (65.5%), loss=0.1272, 32.2s elapsed
+[train] batch 1,300/1,831 (71.0%), loss=0.2150, 35.0s elapsed
+[train] batch 1,400/1,831 (76.5%), loss=0.1483, 38.0s elapsed
+[train] batch 1,500/1,831 (81.9%), loss=0.1656, 40.8s elapsed
+[train] batch 1,600/1,831 (87.4%), loss=0.1183, 43.7s elapsed
+[train] batch 1,700/1,831 (92.8%), loss=0.2117, 46.5s elapsed
+[train] batch 1,800/1,831 (98.3%), loss=0.1567, 49.3s elapsed
+Epoch   2/3 | train_loss: 0.1905 | val_loss: 0.2676 | val_F1: 0.9308 | val_PD: 0.9235 | val_PFA: 0.0245
+[train] batch 100/1,831 (5.5%), loss=0.1924, 2.9s elapsed
+[train] batch 200/1,831 (10.9%), loss=0.2036, 5.7s elapsed
+[train] batch 300/1,831 (16.4%), loss=0.1385, 8.4s elapsed
+[train] batch 400/1,831 (21.8%), loss=0.2062, 11.1s elapsed
+[train] batch 500/1,831 (27.3%), loss=0.1736, 13.9s elapsed
+[train] batch 600/1,831 (32.8%), loss=0.1325, 16.6s elapsed
+[train] batch 700/1,831 (38.2%), loss=0.1742, 19.4s elapsed
+[train] batch 800/1,831 (43.7%), loss=0.2432, 22.3s elapsed
+[train] batch 900/1,831 (49.2%), loss=0.1540, 25.1s elapsed
+[train] batch 1,000/1,831 (54.6%), loss=0.1789, 27.8s elapsed
+[train] batch 1,100/1,831 (60.1%), loss=0.2483, 30.5s elapsed
+[train] batch 1,200/1,831 (65.5%), loss=0.1215, 33.1s elapsed
+[train] batch 1,300/1,831 (71.0%), loss=0.1347, 35.8s elapsed
+[train] batch 1,400/1,831 (76.5%), loss=0.1803, 38.5s elapsed
+[train] batch 1,500/1,831 (81.9%), loss=0.1588, 41.2s elapsed
+[train] batch 1,600/1,831 (87.4%), loss=0.2189, 44.0s elapsed
+[train] batch 1,700/1,831 (92.8%), loss=0.1400, 46.7s elapsed
+[train] batch 1,800/1,831 (98.3%), loss=0.0904, 49.4s elapsed
+Epoch   3/3 | train_loss: 0.1733 | val_loss: 0.2902 | val_F1: 0.9287 | val_PD: 0.9170 | val_PFA: 0.0234
+
+Best val F1: 0.9382 at epoch 1
+
+── Test Set Evaluation (best checkpoint) ──
+  Precision:   0.9488
+  Recall:      0.8861
+  F1:          0.9164
+  Accuracy:    0.9548
+  Mean PD:     0.8930
+  Mean PFA:    0.0184
+
+  Per-channel PD:  [0.701, 0.864, 0.873, 0.941, 0.932, 0.889, 0.95, 0.918, 0.941, 0.921]
+  Per-channel PFA: [0.01, 0.055, 0.021, 0.013, 0.016, 0.025, 0.013, 0.012, 0.01, 0.009]
+
+Label timestamp-offset sweep (diagnostic; not used for selection):
+  offset -2.00s: F1=0.9258
+  offset -1.00s: F1=0.9336
+  offset -0.50s: F1=0.9268
+  offset -0.25s: F1=0.9219
+  offset +0.00s: F1=0.9164
+  offset +0.25s: F1=0.9109
+  offset +0.50s: F1=0.9057
+  offset +1.00s: F1=0.8947
+  offset +2.00s: F1=0.8733
+
+Training history saved to ./checkpoints/training_history.json
